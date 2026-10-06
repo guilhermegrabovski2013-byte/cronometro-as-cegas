@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Cronômetro às Cegas</title>
+<meta name="description" content="Jogo do cronômetro às cegas. Crie uma sala, convide jogadores e tente acertar o tempo-alvo.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <a class="brand" href="#" onclick="show('home');return false"><span class="brand-mark">⏱</span><span>CRONÔMETRO<br><b>ÀS CEGAS</b></span></a>
+    <div class="top-actions"><button class="ghost" onclick="show('how')">Como jogar</button></div>
+  </header>
+
+  <main>
+    <section id="home" class="screen active">
+      <div class="hero">
+        <div class="eyebrow">JOGO DE PRECISÃO • MULTIPLAYER</div>
+        <h1>Você consegue<br><span>parar no tempo?</span></h1>
+        <p>O cronômetro corre. Você não vê nada. Pare quando achar que chegou ao alvo — ou arrisque um <b>DUVIDAR</b>.</p>
+        <div class="hero-actions">
+          <button class="primary xl" onclick="show('create')">CRIAR SALA <span>→</span></button>
+          <button class="secondary xl" onclick="show('join')">ENTRAR EM UMA SALA</button>
+          <button class="practice xl" onclick="showSoloSetup()">🎯 MODO SOLO — PRATICAR</button>
+          <button class="offline xl" onclick="showOfflineSetup()">👥 MODO OFFLINE — AMIGOS</button>
+        </div>
+        <div class="feature-row">
+          <div><strong>🎯</strong><span>Tempo-alvo</span></div>
+          <div><strong>👥</strong><span>Modo offline</span></div>
+          <div><strong>🏆</strong><span>Último sobrevivente</span></div>
+          <div><strong>🏆</strong><span>Último sobrevivente</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="create" class="screen">
+      <div class="panel narrow">
+        <button class="back" onclick="show('home')">← Voltar</button>
+        <div class="eyebrow">NOVA SALA</div>
+        <h2>Configure a partida</h2>
+        <p class="muted">Defina o alvo e crie sua sala. Nesta primeira versão, a sala funciona localmente no navegador.</p>
+        <label>Seu nome<input id="hostName" maxlength="24" placeholder="Ex.: Guilherme"></label>
+        <label>Tempo-alvo<input id="target" type="number" min="0.01" step="0.01" placeholder="Ex.: 3.62"></label>
+        <label>Quantidade de jogadores<input id="count" type="number" min="2" max="20" value="4"></label>
+        <button class="primary full" onclick="createRoom()">CRIAR SALA →</button>
+        <div id="createError" class="error"></div>
+      </div>
+    </section>
+
+    <section id="join" class="screen">
+      <div class="panel narrow">
+        <button class="back" onclick="show('home')">← Voltar</button>
+        <div class="eyebrow">ENTRAR</div>
+        <h2>Entre em uma sala</h2>
+        <p class="muted">Digite o código recebido do criador da sala.</p>
+        <label>Seu nome<input id="joinName" maxlength="24" placeholder="Ex.: João"></label>
+        <label>Código da sala<input id="roomCode" maxlength="6" placeholder="ABC123" style="text-transform:uppercase"></label>
+        <button class="primary full" onclick="joinRoom()">ENTRAR NA SALA →</button>
+        <div id="joinError" class="error"></div>
+      </div>
+    </section>
+
+    <section id="lobby" class="screen">
+      <div class="panel">
+        <div class="lobby-head">
+          <div><div class="eyebrow">SALA</div><h2 id="lobbyCode">------</h2></div>
+          <button class="secondary" onclick="copyRoom()">COPIAR CÓDIGO</button>
+        </div>
+        <div class="share"><span>Compartilhe este código:</span><b id="shareCode">------</b></div>
+        <div class="lobby-grid">
+          <div>
+            <h3>Jogadores <span id="playerTotal" class="pill">0</span></h3>
+            <div id="lobbyPlayers" class="players"></div>
+          </div>
+          <div class="rules">
+            <h3>Regras rápidas</h3>
+            <p>🎯 Alvo: <b id="lobbyTarget">—</b></p>
+            <p>🙈 O tempo fica escondido durante a contagem.</p>
+            <p>⏸️ PAUSAR passa a vez e mantém o tempo acumulado.</p>
+            <p>❓ DUVIDAR revela o tempo e resolve a eliminação.</p>
+            <button id="startMatch" class="primary full" onclick="startMatch()">INICIAR PARTIDA</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="offlineSetup" class="screen">
+      <div class="panel narrow">
+        <button class="back" onclick="show('home')">← Voltar</button>
+        <div class="eyebrow">MODO OFFLINE • 1 DISPOSITIVO</div>
+        <h2>Jogue com seus amigos</h2>
+        <p class="muted">Sem internet e sem sala online. Todos jogam no mesmo celular ou computador. Defina o alvo, coloque os nomes e sorteie a ordem.</p>
+        <label>Tempo-alvo<input id="offlineTarget" type="number" min="0.10" max="3600" step="0.01" value="3.62" placeholder="Ex.: 3.62"></label>
+        <label>Quantidade de jogadores<input id="offlineCount" type="number" min="2" max="20" value="4"></label>
+        <button class="secondary full" type="button" onclick="buildOfflineNames()">CONTINUAR →</button>
+        <div id="offlineSetupError" class="error"></div>
+      </div>
+    </section>
+
+    <section id="offlineNames" class="screen">
+      <div class="panel narrow">
+        <button class="back" onclick="showOfflineSetup()">← Voltar</button>
+        <div class="eyebrow">JOGADORES</div>
+        <h2>Quem vai jogar?</h2>
+        <p class="muted">Digite o nome de cada jogador. Depois, vamos sortear a ordem.</p>
+        <div id="offlineNameInputs" class="name-inputs"></div>
+        <button class="primary full" type="button" onclick="sortOfflinePlayers()">🎲 SORTEAR ORDEM</button>
+        <div id="offlineNamesError" class="error"></div>
+      </div>
+    </section>
+
+    <section id="offlineOrder" class="screen">
+      <div class="panel narrow">
+        <button class="back" onclick="show('offlineNames')">← Voltar</button>
+        <div class="eyebrow">ORDEM SORTEADA</div>
+        <h2>Quem começa?</h2>
+        <p class="muted">A ordem foi sorteada. O jogador no topo começa.</p>
+        <div id="offlineOrderList" class="order-list"></div>
+        <button class="primary full" type="button" onclick="startOfflineMatch()">INICIAR PARTIDA →</button>
+        <button class="secondary full" type="button" onclick="sortOfflinePlayers()">🎲 SORTEAR NOVAMENTE</button>
+      </div>
+    </section>
+
+    <section id="offlineGame" class="screen">
+      <div class="game-grid">
+        <aside class="panel side">
+          <div class="eyebrow">MODO OFFLINE</div>
+          <div class="turn-name" id="offlineTurnName">—</div>
+          <div id="offlineGameTarget" class="target-chip">ALVO: —</div>
+          <h3>Ordem dos jogadores</h3>
+          <div id="offlineGamePlayers" class="players"></div>
+          <button class="ghost full" type="button" onclick="confirmOfflineLeave()">Sair da partida</button>
+        </aside>
+        <div class="panel arena">
+          <div id="offlineGameStatus" class="status">Pronto. Clique em INICIAR.</div>
+          <div id="offlineTimerBox" class="timer"><span id="offlineTimer">████</span></div>
+          <div class="timer-note">O tempo real está oculto. • <b>ESPAÇO</b> = pausar/despausar</div>
+          <div class="controls">
+            <button id="offlineStartBtn" class="green big" type="button" onclick="offlineStartTimer()">▶ INICIAR</button>
+            <button id="offlinePauseBtn" class="gold big" type="button" onclick="offlinePauseTimer()" disabled>⏸ PAUSAR</button>
+            <button id="offlineDoubtBtn" class="red big" type="button" onclick="offlineDoubt()" disabled>❓ DUVIDAR</button>
+          </div>
+          <div id="offlineResult" class="result hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="soloSetup" class="screen">
+      <div class="panel narrow">
+        <button class="back" onclick="show('home')">← Voltar</button>
+        <div class="eyebrow">MODO SOLO</div>
+        <h2>Treine sua precisão</h2>
+        <p class="muted">Escolha um tempo-alvo e tente parar o cronômetro o mais perto possível. O tempo fica escondido até você clicar em <b>DUVIDAR</b>.</p>
+        <label>Tempo-alvo<input id="soloTarget" type="number" min="0.10" max="3600" step="0.01" value="3.62" placeholder="Ex.: 3.62"></label>
+        <button class="primary full" onclick="startSolo()">COMEÇAR TREINO →</button>
+        <div id="soloSetupError" class="error"></div>
+      </div>
+    </section>
+
+    <section id="solo" class="screen">
+      <div class="game-grid solo-grid">
+        <aside class="panel side">
+          <div class="eyebrow">TREINO</div>
+          <div class="turn-name">MODO SOLO</div>
+          <div id="soloGameTarget" class="target-chip">ALVO: 3.62 s</div>
+          <h3>Seu desempenho</h3>
+          <div class="solo-stats">
+            <div><span>Tentativas</span><b id="soloAttempts">0</b></div>
+            <div><span>Melhor diferença</span><b id="soloBest">—</b></div>
+          </div>
+          <button class="ghost full" onclick="show('home')">Sair do treino</button>
+        </aside>
+        <div class="panel arena">
+          <div id="soloStatus" class="status">Pronto. Clique em INICIAR.</div>
+          <div class="timer" id="soloTimerBox"><span id="soloTimer">████</span></div>
+          <div class="timer-note">O tempo real está oculto. • <b>ESPAÇO</b> = pausar/despausar</div>
+          <div class="controls">
+            <button id="soloStartBtn" class="green big" onclick="soloStartTimer()">▶ INICIAR</button>
+            <button id="soloPauseBtn" class="gold big" onclick="soloPauseTimer()" disabled>⏸ PAUSAR</button>
+            <button id="soloDoubtBtn" class="red big" onclick="soloDoubt()" disabled>❓ DUVIDAR</button>
+          </div>
+          <div id="soloResult" class="result hidden"></div>
+          <button id="soloAgainBtn" class="primary full hidden" onclick="resetSoloRound()">NOVA TENTATIVA</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="game" class="screen">
+      <div class="game-grid">
+        <aside class="panel side">
+          <div class="eyebrow">VEZ DE</div>
+          <div id="turnName" class="turn-name">—</div>
+          <div id="gameTarget" class="target-chip">ALVO: —</div>
+          <h3>Jogadores</h3>
+          <div id="gamePlayers" class="players"></div>
+          <button class="ghost full" onclick="confirmLeave()">Sair da partida</button>
+        </aside>
+        <div class="panel arena">
+          <div id="gameStatus" class="status">Pronto.</div>
+          <div class="timer"><span id="timer">████</span></div>
+          <div class="timer-note">O tempo real está oculto. • <b>ESPAÇO</b> = pausar/despausar</div>
+          <div class="controls">
+            <button id="startBtn" class="green big" onclick="startTimer()">▶ INICIAR</button>
+            <button id="pauseBtn" class="gold big" onclick="pauseTimer()" disabled>⏸ PAUSAR</button>
+            <button id="doubtBtn" class="red big" onclick="doubt()">❓ DUVIDAR</button>
+          </div>
+          <div id="result" class="result hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="winner" class="screen">
+      <div class="panel winner-panel">
+        <div class="trophy">🏆</div>
+        <div class="eyebrow">VENCEDOR</div>
+        <h2 id="winnerName">—</h2>
+        <p id="winnerText" class="muted">Parabéns!</p>
+        <button class="primary" onclick="newMatch()">NOVA PARTIDA</button>
+        <button class="secondary" onclick="show('home')">INÍCIO</button>
+      </div>
+    </section>
+
+    <section id="how" class="screen">
+      <div class="panel narrow">
+        <button class="back" onclick="show('home')">← Voltar</button>
+        <div class="eyebrow">COMO JOGAR</div>
+        <h2>As regras</h2>
+        <div class="rule"><b>01</b><span>Defina um <strong>tempo-alvo</strong> antes de começar.</span></div>
+        <div class="rule"><b>02</b><span>Quando iniciar, o cronômetro corre, mas o tempo fica escondido.</span></div>
+        <div class="rule"><b>03</b><span><strong>PAUSAR</strong> congela o tempo acumulado e passa a vez.</span></div>
+        <div class="rule"><b>04</b><span><strong>DUVIDAR</strong> revela o tempo.</span></div>
+        <div class="rule"><b>05</b><span>Se ainda não chegou ao alvo, quem duvidou é eliminado.</span></div>
+        <div class="rule"><b>06</b><span>Se atingiu/passou do alvo, o último jogador que pausou é eliminado.</span></div>
+        <div class="rule"><b>07</b><span>O cronômetro é zerado e a partida continua até restar um jogador.</span></div>
+        <div class="rule"><b>08</b><span>No <strong>Modo Solo</strong>, você pode treinar quantas vezes quiser e acompanhar sua melhor diferença para o alvo.</span></div>
+        <div class="rule"><b>09</b><span>No <strong>Modo Offline</strong>, todos jogam no mesmo dispositivo. O sorteador define a ordem automaticamente e a partida funciona sem internet.</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="modal" class="modal-wrap hidden"><div class="modal"><div id="modalIcon">⚠️</div><h2 id="modalTitle">Aviso</h2><p id="modalText"></p><button class="primary full" onclick="closeModal()">OK</button></div></div>
+
+<script src="app.js"></script>
+</body>
+</html>
